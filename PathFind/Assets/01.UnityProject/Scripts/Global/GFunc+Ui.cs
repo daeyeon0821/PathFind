@@ -1,11 +1,11 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
 public static partial class GFunc
 {
-    //! Ä«¸Ş¶ó »çÀÌÁî¸¦ ¸®ÅÏÇÏ´Â ÇÔ¼ö
+    //! ì¹´ë©”ë¼ ì‚¬ì´ì¦ˆë¥¼ ë¦¬í„´í•˜ëŠ” í•¨ìˆ˜
     public static Vector2 GetCameraSize()
     {
         Vector2 cameraSize = Vector2.zero;
@@ -15,16 +15,16 @@ public static partial class GFunc
         return cameraSize;
     }       // GetCameraSize()
 
-    //! ÅØ½ºÆ®¸Ş½¬ÇÁ·Î ÇüÅÂÀÇ ÄÄÆ÷³ÍÆ®ÀÇ ÅØ½ºÆ®¸¦ ¼³Á¤ÇÏ´Â ÇÔ¼ö
+    //! í…ìŠ¤íŠ¸ë©”ì‰¬í”„ë¡œ í˜•íƒœì˜ ì»´í¬ë„ŒíŠ¸ì˜ í…ìŠ¤íŠ¸ë¥¼ ì„¤ì •í•˜ëŠ” í•¨ìˆ˜
     public static void SetTmpText(this GameObject obj_, string text_)
     {
         TMP_Text tmpTxt = obj_.GetComponent<TMP_Text>();
         if (tmpTxt == null || tmpTxt == default(TMP_Text))
         {
             return;
-        }       // if: °¡Á®¿Ã ÅØ½ºÆ®¸Ş½¬ ÄÄÆ÷³ÍÆ®°¡ ¾ø´Â °æ¿ì
+        }       // if: ê°€ì ¸ì˜¬ í…ìŠ¤íŠ¸ë©”ì‰¬ ì»´í¬ë„ŒíŠ¸ê°€ ì—†ëŠ” ê²½ìš°
 
-        // °¡Á®¿Ã ÅØ½ºÆ®¸Ş½¬ ÄÄÆ÷³ÍÆ®°¡ Á¸ÀçÇÏ´Â °æ¿ì
+        // ê°€ì ¸ì˜¬ í…ìŠ¤íŠ¸ë©”ì‰¬ ì»´í¬ë„ŒíŠ¸ê°€ ì¡´ì¬í•˜ëŠ” ê²½ìš°
         tmpTxt.text = text_;
     }       // SetTextMeshPro()
 }

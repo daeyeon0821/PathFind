@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,14 +12,14 @@ public class TerrainControler : MonoBehaviour
     public int TileIdx1D { get; private set; } = -1;
     public Vector2Int TileIdx2D { get; private set; } = default;
 
-    #region ±æÃ£±â ¾Ë°í¸®ÁòÀ» À§ÇÑ º¯¼ö
+    #region ê¸¸ì°¾ê¸° ì•Œê³ ë¦¬ì¦˜ì„ ìœ„í•œ ë³€ìˆ˜
     private SpriteRenderer frontRenderer = default;
     private Color defaultColor = default;
     private Color selectedColor = default;
     private Color searchColor = default;
     private Color inactiveColor = default;
 
-    #endregion      // ±æÃ£±â ¾Ë°í¸®ÁòÀ» À§ÇÑ º¯¼ö
+    #endregion      // ê¸¸ì°¾ê¸° ì•Œê³ ë¦¬ì¦˜ì„ ìœ„í•œ ë³€ìˆ˜
 
     private void Awake()
     {
