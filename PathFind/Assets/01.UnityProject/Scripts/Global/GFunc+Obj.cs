@@ -6,6 +6,22 @@ using UnityEngine.SceneManagement;
 
 public static partial class GFunc
 {
+    //! 특정 오브젝트의 자식 오브젝트를 서치해서 컴포넌트를 찾아주는 함수
+    public static T FindChildComponent<T>(
+        this GameObject targetObj_, string objName_) where T : Component
+    {
+        T searchResultComponent = default(T);
+        GameObject searchResultObj = default(GameObject);
+
+        searchResultObj = targetObj_.FindChildObj(objName_);
+        if(searchResultObj.IsValid())
+        {
+            searchResultComponent = searchResultObj.GetComponent<T>();
+        }
+
+        return searchResultComponent;
+    }       // FindChildObj()
+
     //! 특정 오브젝트의 자식 오브젝트를 서치해서 찾아주는 함수
     public static GameObject FindChildObj(
         this GameObject targetObj_, string objName_)
@@ -109,7 +125,7 @@ public static partial class GFunc
     }       // Translate()
 
     //! 컴포넌트 가져오는 함수
-    public static T GetComponentMust<T>(this GameObject obj)
+    public static T GetComponentMust<T>(this GameObject obj) where T : Component
     {
         T component_ = obj.GetComponent<T>();
 
