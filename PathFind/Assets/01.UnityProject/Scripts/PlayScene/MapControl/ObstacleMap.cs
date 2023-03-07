@@ -42,10 +42,8 @@ public class ObstacleMap : TileMapControler
         {
             // 위에서 아래로 서치한다.
             searchTerrains = mapControler.GetTerrains_Colum(searchIdx, true);
-            GFunc.Log($"Search terrains count: {searchTerrains.Count}");
             foreach (var searchTerrain in searchTerrains)
             {
-                GFunc.Log($"Search terrain is null?? {searchTerrain}");
                 if (searchTerrain.IsPassable)
                 {
                     foundTile = searchTerrain;
@@ -105,6 +103,8 @@ public class ObstacleMap : TileMapControler
             tempChangeTile = default;
         }       // loop: 출발지와 목적지를 인스턴스화 해서 캐싱하는 루프
         // } 출발지와 목적지에 지물을 추가한다.
+
+        Update_SourDestToPathFinder();
     }       // DoStart()
 
     //! 지물을 추가한다.
@@ -112,4 +112,11 @@ public class ObstacleMap : TileMapControler
     {
         allTileObjs.Add(obstacle_);
     }       // Add_Obstacle()
+
+    //! 패스 파인더에 출발지와 목적지를 설정한다.
+    public void Update_SourDestToPathFinder()
+    {
+        PathFinder.Instance.sourceObj = castleObjs[0];
+        PathFinder.Instance.destinationObj = castleObjs[1];
+    }       // Update_SourDestToPathFinder()
 }

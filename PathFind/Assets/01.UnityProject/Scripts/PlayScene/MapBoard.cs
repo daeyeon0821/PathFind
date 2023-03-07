@@ -17,7 +17,11 @@ public class MapBoard : MonoBehaviour
     {
         // { 각종 매니저를 모두 초기화한다.
         ResManager.Instance.Create();
+        PathFinder.Instance.Create();
         // } 각종 매니저를 모두 초기화한다.
+
+        // PathFinder 에 맵 보드 컨트롤러를 캐싱한다.
+        PathFinder.Instance.mapBoard = this;
 
         // 맵에 지형을 초기화하여 배치한다.
         terrainMap = gameObject.FindChildComponent<TerrainMap>(TERRAIN_MAP_OBJ_NAME);
@@ -53,7 +57,6 @@ public class MapBoard : MonoBehaviour
             tileIdx1D = y * MapCellSize.x + xIdx2D;
 
             tempTile = terrainMap.GetTile(tileIdx1D);
-            GFunc.Log($"Get column : {tempTile.name}");
             terrains.Add(tempTile);
         }       // loop: y 열의 크기만큼 순회하는 루프
 

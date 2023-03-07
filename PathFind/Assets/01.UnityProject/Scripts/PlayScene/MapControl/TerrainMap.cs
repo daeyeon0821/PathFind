@@ -17,8 +17,6 @@ public class TerrainMap : TileMapControler
         this.tileMapObjName = TERRAIN_TILEMAP_OBJ_NAME;
         base.InitAwake(mapControler_);
 
-        GFunc.Log($"Terrain Init awake: {allTileObjs.Count}");
-
         allTerrains = new List<TerrainControler>();
 
         // { 타일의 x축 갯수와 전체 타일의 수로 맵의 가로, 세로 사이즈를 연산한다.
@@ -104,7 +102,6 @@ public class TerrainMap : TileMapControler
             loopCnt += 1;
         }       // loop: 타일의 이름과 렌더링 순서대로 정렬하는 루프
 
-        GFunc.Log($"All terrains: {allTerrains.Count}");
         // } 기존에 존재하는 타일의 순서를 조정하고, 컨트롤러를 캐싱하는 로직
 
     }       // Start()
@@ -118,7 +115,6 @@ public class TerrainMap : TileMapControler
     //! 인덱스에 해당하는 타일을 리턴한다.
     public TerrainControler GetTile(int tileIdx1D)
     {
-        GFunc.Log($"Get tile: {allTerrains.Count}");
         if (allTerrains.IsValid(tileIdx1D))
         {
             return allTerrains[tileIdx1D];
