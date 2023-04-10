@@ -29,8 +29,8 @@ public class TerrainControler : MonoBehaviour
         GFunc.Assert(frontRenderer != null || frontRenderer != default);
 
         defaultColor = new Color(1f, 1f, 1f, 1f);
-        selectedColor = new Color(236f / 255f, 130f / 255f, 20f / 255f, 1f);
-        searchColor = new Color(0f, 192f / 255f, 0f, 1f);
+        selectedColor = new Color(0f, 192f / 255f, 0f, 1f);
+        searchColor = new Color(236f / 255f, 130f / 255f, 20f / 255f, 1f);
         inactiveColor = new Color(128f / 255f, 128f / 255f, 128f / 255f, 1f);
     }       // Awake()
 
@@ -71,7 +71,7 @@ public class TerrainControler : MonoBehaviour
             case RDefine.TileStatusColor.SELECTED:
                 frontRenderer.color = selectedColor;
                 break;
-            case RDefine.TileStatusColor.SEARCH:
+            case RDefine.TileStatusColor.SEARCHING:
                 frontRenderer.color = searchColor;
                 break;
             case RDefine.TileStatusColor.INACTIVE:

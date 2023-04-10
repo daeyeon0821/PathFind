@@ -34,6 +34,13 @@ public class MapBoard : MonoBehaviour
         obstacleMap.InitAwake(this);
     }       // Awake()
 
+    //! 맵의 보드를 리셋하는 함수
+    public void ResetMapBoard()
+    {
+        terrainMap.ShuffleTileMap();
+        obstacleMap.ResetObstacleMap();
+    }
+
     //! 타일 인덱스를 받아서 해당 타일을 리턴하는 함수
     public TerrainControler GetTerrain(int idx1D)
     {

@@ -11,6 +11,6 @@ public static class RDefine
 
     public enum TileStatusColor
     {
-        DEFAULT, SELECTED, SEARCH, INACTIVE
+        DEFAULT, SELECTED, SEARCHING, INACTIVE
     }
 }

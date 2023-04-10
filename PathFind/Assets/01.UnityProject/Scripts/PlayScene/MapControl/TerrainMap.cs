@@ -5,6 +5,7 @@ using UnityEngine;
 public class TerrainMap : TileMapControler
 {
     private const string TERRAIN_TILEMAP_OBJ_NAME = "TerrainTilemap";
+    private const float NON_PASSABLE_PERCENTAGE = 20.0f;
 
     private Vector2Int mapCellSize = default;
     private Vector2 mapCellGap = default;
@@ -47,21 +48,60 @@ public class TerrainMap : TileMapControler
 
     private void Start()
     {
-        // { 타일맵의 일부를 일정 확률로 다른 타일로 교체하는 로직
+        ChangeTileObjsUsePercentage(RDefine.TERRAIN_PREF_OCEAN, NON_PASSABLE_PERCENTAGE);
+        CachingAllTerrains();
+    }       // Start()
+
+    //! 타일 맵을 새로 섞는다
+    public void ShuffleTileMap()
+    {
+        ChangeTileObjsUsePercentage(RDefine.TERRAIN_PREF_PLAIN, 100.0f);
+        ChangeTileObjsUsePercentage(RDefine.TERRAIN_PREF_OCEAN, NON_PASSABLE_PERCENTAGE);
+        CachingAllTerrains();
+
+        //GFunc.Log("TerrainMap shuffled ok");
+    }       // ShuffleTileMap()
+
+    //! 초기화된 타일의 정보로 연산한 맵의 가로, 세로 크기를 리턴한다.
+    public Vector2Int GetCellSize() { return mapCellSize; }
+
+    //! 초기화된 타일의 정보로 연산한 타일 사이의 갭을 리턴한다.
+    public Vector2 GetCellGap() { return mapCellGap; }
+
+    //! 인덱스에 해당하는 타일을 리턴한다.
+    public TerrainControler GetTile(int tileIdx1D)
+    {
+        if (allTerrains.IsValid(tileIdx1D))
+        {
+            return allTerrains[tileIdx1D];
+        }
+        return default;
+    }       // GetTile()
+
+    //! 타일맵의 일부를 일정 확률로 다른 타일로 교체하는 로직
+    private void ChangeTileObjsUsePercentage(string changeTerrainType_, float changePercentage_)
+    {
         GameObject changeTilePrefab = ResManager.Instance.
-            terrainPrefabs[RDefine.TERRAIN_PREF_OCEAN];
-        // 타일맵 중에 어느 정도를 바다로 교체할 것인지 결정한다.
-        const float CHANGE_PERCENTAGE = 15.0f;
+            terrainPrefabs[changeTerrainType_];
+        // 타일맵 중에 어느 정도를 교체할 것인지 결정한다.
         float correctChangePercentage =
-            allTileObjs.Count * (CHANGE_PERCENTAGE / 100.0f);
-        // 바다로 교체할 타일의 정보를 리스트 형태로 생성해서 섞는다.
+            allTileObjs.Count * (changePercentage_ / 100.0f);
+        //// DEBUG:
+        //GFunc.Log("correctChangePercentage: {0}, allTileObjs.Count: {1}", 
+        //    correctChangePercentage, allTileObjs.Count);
+
+        // 교체할 타일의 정보를 리스트 형태로 생성해서 섞는다.
         List<int> changedTileResult = GFunc.CreateList(allTileObjs.Count, 1);
-        changedTileResult.Shuffle();
+        if(changePercentage_.IsEquals(100.0f) == false)
+        {
+            changedTileResult.Shuffle();
+        }
+        else { /* Passed shuffle logic */ }
 
         GameObject tempChangeTile = default;
-        for(int i=0; i < allTileObjs.Count; i++)
+        for (int i = 0; i < allTileObjs.Count; i++)
         {
-            if(correctChangePercentage <= changedTileResult[i]) { continue; }
+            if (correctChangePercentage < changedTileResult[i]) { continue; }
 
             // 프리팹을 인스턴스화해서 교체할 타일의 트랜스폼을 카피한다.
             tempChangeTile = Instantiate(
@@ -72,10 +112,15 @@ public class TerrainMap : TileMapControler
 
             allTileObjs.Swap(ref tempChangeTile, i);
             tempChangeTile.DestroyObj();
-        }       // loop: 위에서 연산한 정보로 현재 타일맵에 바다를 적용하는 루프
-        // } 타일맵의 일부를 일정 확률로 다른 타일로 교체하는 로직
+        }       // loop: 위에서 연산한 정보로 현재 타일맵에 바꿀 타일을 적용하는 루프
+    }       // ChangeTerrainsUsePercentage()
 
-        // { 기존에 존재하는 타일의 순서를 조정하고, 컨트롤러를 캐싱하는 로직
+    //! 기존에 존재하는 타일의 정렬 순서를 조정하고, 컨트롤러를 캐싱하는 로직
+    private void CachingAllTerrains()
+    {
+        // 캐싱 하기 전에 allTerrains 를 클리어한다.
+        allTerrains.Clear();
+
         TerrainControler tempTerrain = default;
         TerrainType terrainType = TerrainType.NONE;
 
@@ -101,24 +146,5 @@ public class TerrainMap : TileMapControler
             allTerrains.Add(tempTerrain);
             loopCnt += 1;
         }       // loop: 타일의 이름과 렌더링 순서대로 정렬하는 루프
-
-        // } 기존에 존재하는 타일의 순서를 조정하고, 컨트롤러를 캐싱하는 로직
-
-    }       // Start()
-
-    //! 초기화된 타일의 정보로 연산한 맵의 가로, 세로 크기를 리턴한다.
-    public Vector2Int GetCellSize() { return mapCellSize; }
-
-    //! 초기화된 타일의 정보로 연산한 타일 사이의 갭을 리턴한다.
-    public Vector2 GetCellGap() { return mapCellGap; }
-
-    //! 인덱스에 해당하는 타일을 리턴한다.
-    public TerrainControler GetTile(int tileIdx1D)
-    {
-        if (allTerrains.IsValid(tileIdx1D))
-        {
-            return allTerrains[tileIdx1D];
-        }
-        return default;
-    }       // GetTile()
+    }       // CachingAllTerrains()
 }

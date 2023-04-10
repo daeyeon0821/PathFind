@@ -8,5 +8,11 @@ public class LeftUiButtons : MonoBehaviour
     public void OnClickAstarFindBtn()
     {
         PathFinder.Instance.FindPath_Astar();
-    }       // OnClickAstarFindBtn
+    }       // OnClickAstarFindBtn()
+
+    //! Shuffle 버튼을 누른 경우
+    public void OnClickShuffleBtn()
+    {
+        PathFinder.Instance.mapBoard.ResetMapBoard();
+    }       // OnClickShuffleBtn()
 }

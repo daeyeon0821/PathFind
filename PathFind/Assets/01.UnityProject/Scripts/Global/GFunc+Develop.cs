@@ -22,6 +22,14 @@ public static partial class GFunc
     }
 
     [System.Diagnostics.Conditional("DEBUG_MODE")]
+    public static void Log(string strFormat, params object[] strParams)
+    {
+#if DEBUG_MODE
+        Debug.LogFormat(strFormat, strParams);
+#endif      // DEBUG_MODE
+    }       // Log()
+
+    [System.Diagnostics.Conditional("DEBUG_MODE")]
     public static void LogWarning(object message)
     {
 #if DEBUG_MODE

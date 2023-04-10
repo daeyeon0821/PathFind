@@ -69,9 +69,6 @@ public class PathFinder : GSingleton<PathFinder>
             }       // loop: 가장 코스트가 낮은 노드를 찾는 루프
             // } Open 리스트를 순회해서 가장 코스트가 낮은 노드를 선택한다.
 
-            minCostNode.ShowCost_Astar();
-            minCostNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SEARCH);
-
             // 선택한 노드가 목적지에 도달했는지 확인한다.
             bool isArriveDest = mapBoard.GetDistance2D(
                 minCostNode.Terrain.gameObject, destinationObj).
@@ -84,7 +81,6 @@ public class PathFinder : GSingleton<PathFinder>
                 bool isSet_aStarResultPathOk = false;
                 while(isSet_aStarResultPathOk == false)
                 {
-                    aStarResultPath.Add(resultNode);
                     if(resultNode.AstarPrevNode == default || 
                         resultNode.AstarPrevNode == null)
                     {
@@ -93,6 +89,9 @@ public class PathFinder : GSingleton<PathFinder>
                     }
                     else { /* Do nothing */ }
 
+                    // 목적지까지의 aStarResultPath 결과를 초록색으로 표시한다.
+                    resultNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
+                    aStarResultPath.Add(resultNode);
                     resultNode = resultNode.AstarPrevNode;
                 }       // loop: 이전 노드를 찾지 못할 때까지 순회하는 루프
                 // } 목적지에 도착 했다면 aStarResultPath 리스트를 설정한다.
@@ -119,7 +118,12 @@ public class PathFinder : GSingleton<PathFinder>
                     if(nextNode.Terrain.IsPassable == false) { continue; }
 
                     Add_AstarOpenList(nextNode, minCostNode);
+                    nextNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
                 }       // loop: 이동 가능한 노드를 Open list 에 추가하는 루프
+
+                minCostNode.ShowCost_Astar();
+                minCostNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
+
                 // } 도착하지 않았다면 현재 타일을 기준으로 4 방향 노드를 찾아온다.
 
                 // 탐색이 끝난 노드는 Close list 에 추가하고, Open list 에서 제거한다.
@@ -133,15 +137,20 @@ public class PathFinder : GSingleton<PathFinder>
                     isNowayToGo = true;
                 }       // if: 목적지에 도착하지 못했는데, 더 이상 탐색할 수 있는 길이 없는 경우
 
-                foreach(var tempNode in aStarOpenPath)
-                {
-                    GFunc.Log($"Idx: {tempNode.Terrain.TileIdx1D}, " +
-                        $"Cost: {tempNode.AstarF}");
-                }
             }       // else: 선택한 노드가 목적지에 도착하지 못한 경우
 
             loopIdx++;
             yield return new WaitForSeconds(delay_);
+
+            // 다음 루프 전에 지나간 탐색에 사용한 색을 정리한다.
+            foreach(AstarNode openNode in aStarOpenPath)
+            {
+                openNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.DEFAULT);
+            }
+            foreach(AstarNode closeNode in aStarClosePath)
+            {
+                closeNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.INACTIVE);
+            }
         }       // loop: A star 알고리즘으로 길을 찾는 메인 루프
     }       // DelayFindPath_Astar()
 
