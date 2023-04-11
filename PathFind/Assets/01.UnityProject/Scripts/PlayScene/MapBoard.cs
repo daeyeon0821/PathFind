@@ -10,6 +10,8 @@ public class MapBoard : MonoBehaviour
     public Vector2Int MapCellSize { get; private set; } = default;
     public Vector2 MapCellGap { get; private set; } = default;
 
+    public float pathFindDelay = 1.0f;      /**< brief Delay for looking path find slowly */
+
     private TerrainMap terrainMap = default;
     private ObstacleMap obstacleMap = default;
 

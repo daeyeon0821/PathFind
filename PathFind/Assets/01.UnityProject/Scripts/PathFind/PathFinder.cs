@@ -19,7 +19,8 @@ public class PathFinder : GSingleton<PathFinder>
     //! 출발지와 목적지 정보로 길을 찾는 함수
     public void FindPath_Astar()
     {
-        StartCoroutine(DelayFindPath_Astar(1.0f));
+        float findDelay = mapBoard.pathFindDelay;
+        StartCoroutine(DelayFindPath_Astar(findDelay));
     }       // FindPath_Astar()
 
     //! 탐색 알고리즘에 딜레이를 건다.
