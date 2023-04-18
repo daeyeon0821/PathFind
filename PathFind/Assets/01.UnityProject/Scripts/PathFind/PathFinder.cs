@@ -265,7 +265,8 @@ public class PathFinder : GSingleton<PathFinder>
                     Add_AstarOpenList(nextNode, minCostNode, destObj_);
                 }       // loop: 이동 가능한 노드를 Open list 에 추가하는 루프
 
-                minCostNode.ShowCost_Astar();
+                //// DEBUG:
+                //minCostNode.ShowCost_Astar();
 
                 // } 도착하지 않았다면 현재 타일을 기준으로 4 방향 노드를 찾아온다.
 
@@ -357,6 +358,20 @@ public class PathFinder : GSingleton<PathFinder>
         }       // else: 아직 탐색이 끝나지 않은 노드인 경우
     }       // Add_AstarOpenList()
 
+    //! 탐색이 끝난 노드를 Close 리스트에 추가한다.
+    private void AddNode_CloseList<Node>(ref List<Node> closelist_, Node targetNode_) where Node : AstarNode
+    {
+        Node closeNode = closelist_.FindNode(targetNode_);
+        if (closeNode != default && closeNode != null)
+        {
+            // 이미 탐색이 끝난 좌표의 노드가 존재하는 경우에는 
+            // Close list 에 추가하지 않는다.
+            return;
+        }       // if: Close list 에 이미 탐색이 끝난 좌표의 노드가 존재하는 경우
+
+        closelist_.Add(targetNode_);
+    }       // AddNode_CloseList()
+
     //! Target 지형 정보와 Destination 지형 정보로 Distance 와 Heuristic 을 설정하는 함수
     private void Update_AstarCostToTerrain(
         AstarNode targetNode, AstarNode prevNode, GameObject destObj_)
@@ -407,136 +422,148 @@ public class PathFinder : GSingleton<PathFinder>
         int loopIdx = 0;
         bool isFoundDestination = false;
         bool isNowayToGo = false;
-        /* 
-         * 1. Open list 에서 f 값이 가장 작은 노드 n 을 선택
-         * 2. n 이 목적지인지 체크
-         * 3. n 이 Jump point 아닌 경우 점프 포인트 서치
-         * 4. 점프 포인트 찾았는지 아닌지에 따라서 로직이 갈린다.
-         */
-        JpsNode minCostNode = GetMinCostNodeFromList(jpsOpenPath);
 
-        // 선택한 노드가 목적지에 도달했는지 확인한다.
-        bool isArriveDest = mapBoard.GetDistance2D(
-            minCostNode.Terrain.gameObject, destinationObj).
-            Equals(Vector2Int.zero);
-        if(isArriveDest)
+        while (loopIdx < 5)
+            //while (isFoundDestination == false && isNowayToGo == false)
         {
-            isFoundDestination = true;
-            GFunc.Log("Destination found. End jps search. {0}", isFoundDestination);
-        }       // if: 목적지에 도착한 경우
-        else
-        {
-            // 목적지에 도착하지 못한 경우 다음에 탐색할 노드를 찾아서 Open list 에 추가한다.
-            TerrainControler jumpPoint = Find_JumpPoint(sourceIdx1D);
-
-            if (jumpPoint.IsValid())
-            {
-                /*
-                 * 1. Node 에서 jumpPoint 까지 최단거리를 A star 알고리즘으로 연산한다.
-                 * 2. A star 알고리즘의 Result path 를 가져와서 jumpPoint 의 f 값을 얻는다.
-                 * 3. Open list 에 추가한다.
-                 */
-
-                //// DEBUG:
-                //GFunc.Log("Jump point found. MinCost idx2D: {0} / JumpPoint idx2D: {1}",
-                //    minCostNode.Terrain.TileIdx2D, jumpPoint.TileIdx2D);
-
-                // minCostNode 에서 jumpPoint 까지의 최단거리를 A star 알고리즘으로 연산한다.
-                // jumpPoint 의 F 값을 구한다.
-                DoFindPath_Astar(minCostNode.Terrain.gameObject, jumpPoint.gameObject);
-
-                // { jumpPoint 를 Open list 에 추가한다.
-                JpsNode nextNode = new JpsNode(jumpPoint, destinationObj, true);
-
-                // Result 를 역순으로 탐색하면서 JpsNode 로 변환한다.
-                JpsNode prevNode = minCostNode;
-                JpsNode resultNode = default;
-                for(int i = aStarResultPath.Count - 1; -1 < i; i--)
-                {
-                    if (i.Equals(0))
-                    {
-                        resultNode = new JpsNode(aStarResultPath[i].Terrain, destinationObj, true);
-                    }   // if: jump point 인 경우
-                    else
-                    {
-                        resultNode = new JpsNode(aStarResultPath[i].Terrain, destinationObj, false);
-                    }   // else: jump point 로 향하는 다른 노드인 경우
-
-                    //// DEBUG:
-                    //GFunc.Log("Result node {0}, F: {1}", 
-                    //    resultNode.Terrain.TileIdx1D, resultNode.AstarF);
-
-                    // F 값 연산을 위해서 Cost 를 Update 한다.
-                    Update_AstarCostToTerrain(resultNode, prevNode, destinationObj);
-
-                    if(i.Equals(0))
-                    {
-                        // Jump point 인 경우 다음 Open list 에 추가한다.
-                        Add_JpsOpenList(resultNode, prevNode);
-                    }   // if: jump point 인 경우
-                    else
-                    {
-                        // 다른 노드는 모두 Close list 에 버린다.
-                        jpsClosePath.Add(resultNode);
-
-                        // DEBUG:
-                        resultNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.INACTIVE);
-                    }   // else: jump point 로 향하는 다른 노드인 경우
-
-                    prevNode = resultNode;
-                    resultNode = default;
-                }   // loop: aStarResultPath 를 역순으로 순회하는 루프
-
-                // } jumpPoint 를 Open list 에 추가한다.
-
-                jumpPoint.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
-            }       // if: Jump point 가 존재하는 경우
-            else
-            {
-                /*
-                 * 1. minCostNode 의 이웃 노드를 모두 Collection 에 캐싱
-                 * 2. Collection 에 캐싱한 노드를 전부 Open list 에 추가
-                 */
-
-                // { Jump point 가 존재하지 않는 경우 현재 타일을 기준으로 4 방향 노드를 찾아온다.
-                List<int> nextSearchIdx1Ds = mapBoard.
-                    GetTileIdx2D_Around4ways(minCostNode.Terrain.TileIdx2D);
-
-                // 찾아온 노드 중에서 이동 가능한 노드는 Open list 에 추가한다.
-                JpsNode nextNode = default;
-                foreach (var nextIdx1D in nextSearchIdx1Ds)
-                {
-                    nextNode = new JpsNode(
-                        mapBoard.GetTerrain(nextIdx1D), destinationObj, false);
-
-                    if (nextNode.Terrain.IsPassable == false) { continue; }
-
-                    Add_JpsOpenList(nextNode, minCostNode);
-                    nextNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
-                }       // loop: 이동 가능한 노드를 Open list 에 추가하는 루프
-
-                minCostNode.ShowCost_Astar();
-                minCostNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
-
-                // } Jump point 가 존재하지 않는 경우 현재 타일을 기준으로 4 방향 노드를 찾아온다.
-
-                GFunc.Log("Jump point not found .. ");
-            }       // else: Jump poin 가 존재하지 않는 경우
-
-            // 탐색이 끝난 노드는 Close list 에 추가하고, Open list 에서 제거한다.
-            // 이 때, Open list 가 비어 있다면 더 이상 탐색할 수 있는 길이
-            // 존재하지 않는 것이다.
-            jpsClosePath.Add(minCostNode);
-            jpsOpenPath.Remove(minCostNode);
-            if (jpsOpenPath.IsValid() == false)
+            // Open list 에서 F 값이 가장 작은 노드 minCostNode 를 선택한다.
+            JpsNode minCostNode = GetMinCostNodeFromList(jpsOpenPath);
+            
+            // DEBUG:
+            // Open list 가 비어 있는 경우 탈출한다.
+            if(minCostNode == null || minCostNode == default)
             {
                 isNowayToGo = true;
+                break;
+            }       // if: Open list 가 비어있는 경우
 
-                GFunc.LogWarning("[Warning] There are no more tiles to explore. {0}", 
-                    isNowayToGo);
-            }       // if: 목적지에 도착하지 못했는데, 더 이상 탐색할 수 있는 길이 없는 경우
+            // 선택한 노드가 목적지에 도달했는지 확인한다.
+            bool isArriveDest = mapBoard.GetDistance2D(
+                minCostNode.Terrain.gameObject, destinationObj).
+                Equals(Vector2Int.zero);
+            if (isArriveDest)
+            {
+                isFoundDestination = true;
+                GFunc.Log("Destination found. End jps search. {0}", isFoundDestination);
+            }       // if: 목적지에 도착한 경우
+            else
+            {
+                // 목적지에 도착하지 못한 경우 다음에 탐색할 노드를 찾아서 Open list 에 추가한다.
+                TerrainControler jumpPoint = Find_JumpPoint(minCostNode.Terrain.TileIdx1D);
 
-        }       // else: 목적지에 도착하지 못한 경우
+                if (jumpPoint.IsValid())
+                {
+                    /*
+                     * 1. Node 에서 jumpPoint 까지 최단거리를 A star 알고리즘으로 연산한다.
+                     * 2. A star 알고리즘의 Result path 를 가져와서 jumpPoint 의 f 값을 얻는다.
+                     * 3. Open list 에 추가한다.
+                     */
+
+                    // DEBUG:
+                    GFunc.Log("Jump point found. MinCost idx2D: {0} / JumpPoint idx2D: {1} / loopCnt: {2}",
+                        minCostNode.Terrain.TileIdx2D, jumpPoint.TileIdx2D, loopIdx);
+
+                    // minCostNode 에서 jumpPoint 까지의 최단거리를 A star 알고리즘으로 연산한다.
+                    // jumpPoint 의 F 값을 구한다.
+                    DoFindPath_Astar(minCostNode.Terrain.gameObject, jumpPoint.gameObject);
+
+                    // { jumpPoint 를 Open list 에 추가한다.
+                    JpsNode nextNode = new JpsNode(jumpPoint, destinationObj, true);
+
+                    // Result 를 역순으로 탐색하면서 JpsNode 로 변환한다.
+                    JpsNode prevNode = minCostNode;
+                    JpsNode resultNode = default;
+                    for (int i = aStarResultPath.Count - 1; -1 < i; i--)
+                    {
+                        if (i.Equals(0))
+                        {
+                            resultNode = new JpsNode(aStarResultPath[i].Terrain, destinationObj, true);
+                        }   // if: jump point 인 경우
+                        else
+                        {
+                            resultNode = new JpsNode(aStarResultPath[i].Terrain, destinationObj, false);
+                        }   // else: jump point 로 향하는 다른 노드인 경우
+
+                        //// DEBUG:
+                        //GFunc.Log("Result node {0}, F: {1}", 
+                        //    resultNode.Terrain.TileIdx1D, resultNode.AstarF);
+
+                        // F 값 연산을 위해서 Cost 를 Update 한다.
+                        Update_AstarCostToTerrain(resultNode, prevNode, destinationObj);
+
+                        if (i.Equals(0))
+                        {
+                            // Jump point 인 경우 다음 Open list 에 추가한다.
+                            Add_JpsOpenList(resultNode, prevNode);
+                        }   // if: jump point 인 경우
+                        else
+                        {
+                            // 다른 노드는 모두 Close list 에 버린다.
+                            AddNode_CloseList(ref jpsClosePath, resultNode);
+
+                            // DEBUG:
+                            resultNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.INACTIVE);
+                        }   // else: jump point 로 향하는 다른 노드인 경우
+
+                        prevNode = resultNode;
+                        resultNode = default;
+                    }   // loop: aStarResultPath 를 역순으로 순회하는 루프
+
+                    // } jumpPoint 를 Open list 에 추가한다.
+
+                    jumpPoint.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
+                }       // if: Jump point 가 존재하는 경우
+                else
+                {
+                    /*
+                     * 1. minCostNode 의 이웃 노드를 모두 Collection 에 캐싱
+                     * 2. Collection 에 캐싱한 노드를 전부 Open list 에 추가
+                     */
+
+                    // { Jump point 가 존재하지 않는 경우 현재 타일을 기준으로 4 방향 노드를 찾아온다.
+                    List<int> nextSearchIdx1Ds = mapBoard.
+                        GetTileIdx2D_Around4ways(minCostNode.Terrain.TileIdx2D);
+
+                    GFunc.Log("Jump point not found / loopCnt: {0}, nodes: {1}", 
+                        loopIdx, nextSearchIdx1Ds.Count);
+
+                    // 찾아온 노드 중에서 이동 가능한 노드는 Open list 에 추가한다.
+                    JpsNode nextNode = default;
+                    foreach (var nextIdx1D in nextSearchIdx1Ds)
+                    {
+                        nextNode = new JpsNode(
+                            mapBoard.GetTerrain(nextIdx1D), destinationObj, false);
+
+                        if (nextNode.Terrain.IsPassable == false) { continue; }
+
+                        Add_JpsOpenList(nextNode, minCostNode);
+                        nextNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
+                    }       // loop: 이동 가능한 노드를 Open list 에 추가하는 루프
+
+                    minCostNode.ShowCost_Astar();
+                    minCostNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
+
+                    // } Jump point 가 존재하지 않는 경우 현재 타일을 기준으로 4 방향 노드를 찾아온다.
+                }       // else: Jump poin 가 존재하지 않는 경우
+
+                // 탐색이 끝난 노드는 Close list 에 추가하고, Open list 에서 제거한다.
+                AddNode_CloseList(ref jpsClosePath, minCostNode);
+                jpsOpenPath.Remove(minCostNode);
+
+                // 이 때, Open list 가 비어 있다면 더 이상 탐색할 수 있는 길이
+                // 존재하지 않는 것이다.
+                if (jpsOpenPath.IsValid() == false)
+                {
+                    isNowayToGo = true;
+
+                    GFunc.LogWarning("[Warning] There are no more tiles to explore. {0}",
+                        isNowayToGo);
+                }       // if: 목적지에 도착하지 못했는데, 더 이상 탐색할 수 있는 길이 없는 경우
+
+            }       // else: 목적지에 도착하지 못한 경우
+
+            loopIdx++;
+        }       // loop: Jps 알고리즘으로 길을 찾는 메인 루프
         
     }       // FindPath_JPS()
 
