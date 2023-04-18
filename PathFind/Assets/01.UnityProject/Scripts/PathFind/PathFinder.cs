@@ -168,8 +168,8 @@ public class PathFinder : GSingleton<PathFinder>
 
             }       // else: 선택한 노드가 목적지에 도착하지 못한 경우
 
-            loopIdx++;
             yield return new WaitForSeconds(delay_);
+            loopIdx++;
 
             // 다음 루프 전에 지나간 탐색에 사용한 색을 정리한다.
             foreach (AstarNode openNode in aStarOpenPath)
@@ -285,7 +285,7 @@ public class PathFinder : GSingleton<PathFinder>
 
             loopIdx++;
         }       // loop: A star 알고리즘으로 길을 찾는 메인 루프
-    }       // DelayFindPath_Astar()
+    }       // DoFindPath_Astar()
 
     //! 리스트에서 가장 비용이 낮은 노드를 리턴한다.
     private Node GetMinCostNodeFromList<Node>(List<Node> searchList_) where Node : AstarNode
@@ -373,8 +373,8 @@ public class PathFinder : GSingleton<PathFinder>
     }       // AddNode_CloseList()
 
     //! Target 지형 정보와 Destination 지형 정보로 Distance 와 Heuristic 을 설정하는 함수
-    private void Update_AstarCostToTerrain(
-        AstarNode targetNode, AstarNode prevNode, GameObject destObj_)
+    private void Update_AstarCostToTerrain<Node>(
+        Node targetNode, Node prevNode, GameObject destObj_) where Node : AstarNode
     {
         // { Target 지형에서 Destination 까지의 2D 타일 거리를 계산하는 로직
         Vector2Int distance2D = mapBoard.GetDistance2D(
@@ -404,6 +404,14 @@ public class PathFinder : GSingleton<PathFinder>
     //! 출발지와 목적지 정보로 길을 찾는 함수
     public void FindPath_JPS()
     {
+        float findDelay = mapBoard.pathFindDelay;
+        StartCoroutine(DelayFindPath_JPS(findDelay));
+
+    }       // FindPath_JPS()
+
+    //! 출발지와 목적지 정보로 길을 찾는 함수
+    private IEnumerator DelayFindPath_JPS(float delay_)
+    {
         // Jps 알고리즘을 사용하기 위해서 패스 리스트를 초기화한다.
         jpsOpenPath = new List<JpsNode>();
         jpsClosePath = new List<JpsNode>();
@@ -423,19 +431,11 @@ public class PathFinder : GSingleton<PathFinder>
         bool isFoundDestination = false;
         bool isNowayToGo = false;
 
-        while (loopIdx < 5)
-            //while (isFoundDestination == false && isNowayToGo == false)
+        //while (loopIdx < 20)
+        while (isFoundDestination == false && isNowayToGo == false)
         {
             // Open list 에서 F 값이 가장 작은 노드 minCostNode 를 선택한다.
             JpsNode minCostNode = GetMinCostNodeFromList(jpsOpenPath);
-            
-            // DEBUG:
-            // Open list 가 비어 있는 경우 탈출한다.
-            if(minCostNode == null || minCostNode == default)
-            {
-                isNowayToGo = true;
-                break;
-            }       // if: Open list 가 비어있는 경우
 
             // 선택한 노드가 목적지에 도달했는지 확인한다.
             bool isArriveDest = mapBoard.GetDistance2D(
@@ -443,14 +443,43 @@ public class PathFinder : GSingleton<PathFinder>
                 Equals(Vector2Int.zero);
             if (isArriveDest)
             {
+                // { 목적지에 도착 했다면 jpsResultPath 리스트를 설정한다.
+                JpsNode destinationNode_ = minCostNode;
+                bool isSet_jpsResultPathOk = false;
+                while (isSet_jpsResultPathOk == false)
+                {
+                    if (destinationNode_.JpsPrevNode == default ||
+                        destinationNode_.JpsPrevNode == null)
+                    {
+                        isSet_jpsResultPathOk = true;
+                        break;
+                    }
+                    else { /* Do nothing */ }
+
+                    // 목적지까지의 jpsResultPath 결과를 초록색으로 표시한다.
+                    destinationNode_.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
+                    jpsResultPath.Add(destinationNode_);
+                    destinationNode_ = destinationNode_.JpsPrevNode;
+                }       // loop: 이전 노드를 찾지 못할 때까지 순회하는 루프
+                // } 목적지에 도착 했다면 aStarResultPath 리스트를 설정한다.
+
+                // Open list 와 Close list 를 정리한다.
+                jpsOpenPath.Clear();
+                jpsClosePath.Clear();
                 isFoundDestination = true;
+
+                // DEBUG:
                 GFunc.Log("Destination found. End jps search. {0}", isFoundDestination);
+
+                break;
             }       // if: 목적지에 도착한 경우
             else
             {
-                // 목적지에 도착하지 못한 경우 다음에 탐색할 노드를 찾아서 Open list 에 추가한다.
-                TerrainControler jumpPoint = Find_JumpPoint(minCostNode.Terrain.TileIdx1D);
+                // 다음 점프 포인트가 Close list 에 존재하는 경우 점프 포인트를 새로 탐색한다.
+                TerrainControler jumpPoint = Find_JumpPoint(
+                    minCostNode.Terrain.TileIdx1D, ref jpsClosePath);
 
+                // 목적지에 도착하지 못한 경우 다음에 탐색할 노드를 찾아서 Open list 에 추가한다.
                 if (jumpPoint.IsValid())
                 {
                     /*
@@ -495,11 +524,17 @@ public class PathFinder : GSingleton<PathFinder>
                         {
                             // Jump point 인 경우 다음 Open list 에 추가한다.
                             Add_JpsOpenList(resultNode, prevNode);
-                        }   // if: jump point 인 경우
+                            Find_JpsNode_Around4ways(resultNode);
+
+                            //// DEBUG:
+                            //GFunc.Log("resultNode F: {0}, idx2D: {1} / Open: {2}",
+                            //    resultNode.AstarF, resultNode.Terrain.TileIdx2D, jpsOpenPath.Count);
+                        }   // if: resultNode 가 jump point 인 경우
                         else
                         {
                             // 다른 노드는 모두 Close list 에 버린다.
                             AddNode_CloseList(ref jpsClosePath, resultNode);
+                            Find_JpsNode_Around4ways(resultNode);
 
                             // DEBUG:
                             resultNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.INACTIVE);
@@ -520,30 +555,11 @@ public class PathFinder : GSingleton<PathFinder>
                      * 2. Collection 에 캐싱한 노드를 전부 Open list 에 추가
                      */
 
-                    // { Jump point 가 존재하지 않는 경우 현재 타일을 기준으로 4 방향 노드를 찾아온다.
-                    List<int> nextSearchIdx1Ds = mapBoard.
-                        GetTileIdx2D_Around4ways(minCostNode.Terrain.TileIdx2D);
+                    Find_JpsNode_Around4ways(minCostNode, true);
 
-                    GFunc.Log("Jump point not found / loopCnt: {0}, nodes: {1}", 
-                        loopIdx, nextSearchIdx1Ds.Count);
+                    GFunc.Log("Jump point not found / Open cnt: {0} / loopCnt: {1}",
+                        jpsOpenPath.Count, loopIdx);
 
-                    // 찾아온 노드 중에서 이동 가능한 노드는 Open list 에 추가한다.
-                    JpsNode nextNode = default;
-                    foreach (var nextIdx1D in nextSearchIdx1Ds)
-                    {
-                        nextNode = new JpsNode(
-                            mapBoard.GetTerrain(nextIdx1D), destinationObj, false);
-
-                        if (nextNode.Terrain.IsPassable == false) { continue; }
-
-                        Add_JpsOpenList(nextNode, minCostNode);
-                        nextNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
-                    }       // loop: 이동 가능한 노드를 Open list 에 추가하는 루프
-
-                    minCostNode.ShowCost_Astar();
-                    minCostNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
-
-                    // } Jump point 가 존재하지 않는 경우 현재 타일을 기준으로 4 방향 노드를 찾아온다.
                 }       // else: Jump poin 가 존재하지 않는 경우
 
                 // 탐색이 끝난 노드는 Close list 에 추가하고, Open list 에서 제거한다.
@@ -562,10 +578,116 @@ public class PathFinder : GSingleton<PathFinder>
 
             }       // else: 목적지에 도착하지 못한 경우
 
+            yield return new WaitForSeconds(delay_);
             loopIdx++;
+
+            // 다음 루프 전에 지나간 탐색에 사용한 색을 정리한다.
+            foreach (JpsNode openNode in jpsOpenPath)
+            {
+                openNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.DEFAULT);
+            }
+            foreach (JpsNode closeNode in jpsClosePath)
+            {
+                closeNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.INACTIVE);
+            }
         }       // loop: Jps 알고리즘으로 길을 찾는 메인 루프
-        
+
     }       // FindPath_JPS()
+
+    //! Target node 를 기준으로 4방향 노드를 탐색해서 Open list 에 추가한다.
+    private void Find_JpsNode_Around4ways(JpsNode targetNode, bool isShowColor = false)
+    {
+        // { Jump point 가 존재하지 않는 경우 현재 타일을 기준으로 4 방향 노드를 찾아온다.
+        List<int> nextSearchIdx1Ds = mapBoard.
+            GetTileIdx2D_Around4ways(targetNode.Terrain.TileIdx2D);
+
+        // 찾아온 노드 중에서 이동 가능한 노드는 Open list 에 추가한다.
+        JpsNode nextNode = default;
+        foreach (var nextIdx1D in nextSearchIdx1Ds)
+        {
+            nextNode = new JpsNode(
+                mapBoard.GetTerrain(nextIdx1D), destinationObj, false);
+
+            if (nextNode.Terrain.IsPassable == false) { continue; }
+
+            Add_JpsOpenList(nextNode, targetNode);
+            if (isShowColor)
+            {
+                nextNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
+            }
+        }       // loop: 이동 가능한 노드를 Open list 에 추가하는 루프
+
+        //// DEBUG:
+        //targetNode.ShowCost_Astar();
+
+        if (isShowColor)
+        {
+            targetNode.Terrain.SetTileActiveColor(RDefine.TileStatusColor.SELECTED);
+        }
+
+        // } Jump point 가 존재하지 않는 경우 현재 타일을 기준으로 4 방향 노드를 찾아온다.
+    }       // Find_JpsNode_Around4ways()
+
+    //! Target 인덱스로부터 Jump point 를 탐색해서 리턴한다. Close list 에 존재하는 point 는 패스한다.
+    private TerrainControler Find_JumpPoint(int targetIdx1D, ref List<JpsNode> closelist_)
+    {
+        TerrainControler jumpPoint = default;
+        bool isCloseNode = false;
+
+        // Close list 가 비어 있는 경우는 가장 처음 탐색되는 점프 포인트를 리턴한다.
+        if (closelist_.IsValid() == false)
+        {
+            return Find_JumpPoint(targetIdx1D);
+        }       // if: 참고할 Close list 가 없는 경우
+
+        // { 동, 서, 남, 북 4 방향의 인덱스 중, 이동 가능한 타일의 인덱스를 모두 가져온다.
+        Vector2Int targetIdx2D = mapBoard.GetTileIdx2D(targetIdx1D);
+
+        // targetIdx 를 기준으로 아래와 위로 나눈다.
+        List<TerrainControler> terrainsColum = mapBoard.GetTerrains_Colum(targetIdx2D.x);
+        List<TerrainControler>[] terrainsSN = mapBoard.SplitTerrains(terrainsColum, targetIdx2D);
+        // 아래에서 위로 탐색이 정방향이기 때문에, 아래는 역방향으로 탐색한다.
+        terrainsSN[0].Reverse();
+        mapBoard.RemoveTerrains_NonPassableTileAfter(ref terrainsSN[0]);
+        jumpPoint = mapBoard.GetJumpPoint(terrainsSN[0], GData.GridDirection.SOUTH);
+        if (jumpPoint.IsValid())
+        {
+            isCloseNode = closelist_.FindNode(jumpPoint.TileIdx1D) != default;
+            if(isCloseNode == false) { return jumpPoint; }
+        }
+
+        mapBoard.RemoveTerrains_NonPassableTileAfter(ref terrainsSN[1]);
+        jumpPoint = mapBoard.GetJumpPoint(terrainsSN[1], GData.GridDirection.NORTH);
+        if (jumpPoint.IsValid())
+        {
+            isCloseNode = closelist_.FindNode(jumpPoint.TileIdx1D) != default;
+            if (isCloseNode == false) { return jumpPoint; }
+        }
+
+        // targetIdx 를 기준으로 왼쪽과 오른쪽으로 나눈다.
+        List<TerrainControler> terrainsRow = mapBoard.GetTerrains_Row(targetIdx2D.y);
+        List<TerrainControler>[] terrainsWE = mapBoard.SplitTerrains(terrainsRow, targetIdx2D);
+        // 왼쪽에서 오른쪽으로 탐색이 정방향이기 때문에, 왼쪽은 역방향으로 탐색한다.
+        terrainsWE[0].Reverse();
+        mapBoard.RemoveTerrains_NonPassableTileAfter(ref terrainsWE[0]);
+        jumpPoint = mapBoard.GetJumpPoint(terrainsWE[0], GData.GridDirection.WEST);
+        if (jumpPoint.IsValid())
+        {
+            isCloseNode = closelist_.FindNode(jumpPoint.TileIdx1D) != default;
+            if (isCloseNode == false) { return jumpPoint; }
+        }
+
+        mapBoard.RemoveTerrains_NonPassableTileAfter(ref terrainsWE[1]);
+        jumpPoint = mapBoard.GetJumpPoint(terrainsWE[1], GData.GridDirection.EAST);
+        if (jumpPoint.IsValid())
+        {
+            isCloseNode = closelist_.FindNode(jumpPoint.TileIdx1D) != default;
+            if (isCloseNode == false) { return jumpPoint; }
+        }
+
+        // } 동, 서, 남, 북 4 방향의 인덱스 중, 이동 가능한 타일의 인덱스를 모두 가져온다.
+        return jumpPoint;
+    }       // Find_JumpPoint()
 
     //! Target 인덱스로부터 Jump point 를 탐색해서 리턴한다.
     private TerrainControler Find_JumpPoint(int targetIdx1D)

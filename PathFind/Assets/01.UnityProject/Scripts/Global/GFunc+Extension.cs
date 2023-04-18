@@ -81,6 +81,29 @@ public static partial class GFunc
                 compareNode.Terrain.TileIdx1D))
             {
                 resultNode = node_;
+                break;
+            }
+            else { continue; }
+        }       // loop: 노드 리스트를 순회하는 루프
+
+        return resultNode;
+    }       // FindNode()
+
+    //! 두 노드가 중복인지 검사하는 함수
+    public static Node FindNode<Node>(
+        this List<Node> nodelist, int compareIdx1D) where Node : AstarNode
+    {
+        if (nodelist.IsValid() == false) { return default; }
+
+        Node resultNode = default;
+        foreach (var node_ in nodelist)
+        {
+            if (node_.Terrain == default || node_.Terrain == null) { continue; }
+
+            if (node_.Terrain.TileIdx1D.Equals(compareIdx1D))
+            {
+                resultNode = node_;
+                break;
             }
             else { continue; }
         }       // loop: 노드 리스트를 순회하는 루프

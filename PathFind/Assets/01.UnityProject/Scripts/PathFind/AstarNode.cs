@@ -8,9 +8,9 @@ public class AstarNode
     public GameObject DestinationObj { get; private set; }
 
     // A star algorithm
-    public float AstarF { get; private set; } = float.MaxValue;
-    public float AstarG { get; private set; } = float.MaxValue;
-    public float AstarH { get; private set; } = float.MaxValue;
+    public float AstarF { get; protected set; } = float.MaxValue;
+    public float AstarG { get; protected set; } = float.MaxValue;
+    public float AstarH { get; protected set; } = float.MaxValue;
 
     public AstarNode AstarPrevNode { get; private set; } = default;
 
@@ -21,8 +21,8 @@ public class AstarNode
     }
 
     //! Astar 알고리즘에 사용할 비용을 설정한다.
-    public void UpdateCost_Astar(float gCost, float heuristic,
-        AstarNode prevNode)
+    public virtual void UpdateCost_Astar<Node>(float gCost, float heuristic,
+        Node prevNode) where Node : AstarNode
     {
         float aStarF = gCost + heuristic;
 
