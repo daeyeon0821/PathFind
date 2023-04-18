@@ -4,6 +4,13 @@ using UnityEngine;
 
 public static partial class GFunc
 {
+    //! 리스트에서 Range count를 리턴하는 함수
+    public static int GetRangeCount<T>(this List<T> list_, int targetIdx)
+    {
+        int rangeCount = list_.Count - targetIdx;
+        return rangeCount;
+    }       // GetRangeCount()
+
     //! 딕셔너리에 오브젝트 프리팹을 캐싱하는 함수
     public static void AddObjs(
         this Dictionary<string, GameObject> dict_, GameObject[] prefabs_)
@@ -58,12 +65,12 @@ public static partial class GFunc
 
     #region A star function
     //! 두 노드가 중복인지 검사하는 함수
-    public static AstarNode FindNode(
-        this List<AstarNode> nodelist, AstarNode compareNode)
+    public static Node FindNode<Node>(
+        this List<Node> nodelist, Node compareNode) where Node : AstarNode
     {
         if(nodelist.IsValid() == false) { return default; }
         
-        AstarNode resultNode = default;
+        Node resultNode = default;
         foreach(var node_ in nodelist)
         {
             if(node_.Terrain == default || node_.Terrain == null) { continue; }

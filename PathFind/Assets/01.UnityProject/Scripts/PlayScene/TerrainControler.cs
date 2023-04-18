@@ -35,7 +35,7 @@ public class TerrainControler : MonoBehaviour
     }       // Awake()
 
     //! 지형정보를 초기 설정한다.
-    public void SetupTerrain(MapBoard mapControler_, 
+    public void SetupTerrain(MapBoard mapControler_,
         TerrainType type_, int tileIdx1D_)
     {
         terrainType = type_;
@@ -44,7 +44,7 @@ public class TerrainControler : MonoBehaviour
         TileIdx2D = mapControler.GetTileIdx2D(TileIdx1D);
 
         string prefabName = string.Empty;
-        switch(type_)
+        switch (type_)
         {
             case TerrainType.PLAIN_PASS:
                 prefabName = RDefine.TERRAIN_PREF_PLAIN;
@@ -66,7 +66,7 @@ public class TerrainControler : MonoBehaviour
     //! 지형의 Front 색상을 변경한다.
     public void SetTileActiveColor(RDefine.TileStatusColor tileStatus)
     {
-        switch(tileStatus)
+        switch (tileStatus)
         {
             case RDefine.TileStatusColor.SELECTED:
                 frontRenderer.color = selectedColor;
@@ -82,5 +82,4 @@ public class TerrainControler : MonoBehaviour
                 break;
         }
     }       // SetTileActiveColor()
-
 }       // class TerrainControler

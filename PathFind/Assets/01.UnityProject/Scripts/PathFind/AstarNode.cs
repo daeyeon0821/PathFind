@@ -41,7 +41,7 @@ public class AstarNode
     //! 설정한 비용을 출력한다.
     public void ShowCost_Astar()
     {
-        GFunc.Log($"TileIdx1D: {Terrain.TileIdx1D}, " +
-            $"F: {AstarF}, G: {AstarG}, H: {AstarH}");
+        GFunc.Log("TileIdx1D: {0}, 2D: {1}, F: {2}, G: {3}, H: {4}", 
+            Terrain.TileIdx1D, Terrain.TileIdx2D, AstarF, AstarG, AstarH);
     }       // ShowCost_Astar()
 }

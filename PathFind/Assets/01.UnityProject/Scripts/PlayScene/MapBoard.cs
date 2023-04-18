@@ -65,12 +65,16 @@ public class MapBoard : MonoBehaviour
         {
             tileIdx1D = y * MapCellSize.x + xIdx2D;
 
+            // 해당 인덱스의 타일이 존재하는 경우 리스트에 추가한다.
             tempTile = terrainMap.GetTile(tileIdx1D);
+            if (tempTile.IsValid() == false) { continue; }
+
             terrains.Add(tempTile);
         }       // loop: y 열의 크기만큼 순회하는 루프
 
         if(terrains.IsValid())
         {
+            // 아래에서 위로 캐싱이 정방향, 위에서 아래가 역방향이다.
             if(isSortReverse) { terrains.Reverse(); }
             else { /* Do nothing */ }
 
@@ -78,6 +82,40 @@ public class MapBoard : MonoBehaviour
         }
         else { return default; }
     }       // GetTerrains_Colum()
+
+    //! 맵의 y 좌표를 받아서 해당 행의 타일을 리스트로 가져오는 함수
+    public List<TerrainControler> GetTerrains_Row(int yIdx2D)
+    {
+        return GetTerrains_Row(yIdx2D, false);
+    }       // GetTerrains_Row()
+
+    //! 맵의 y 좌표를 받아서 해당 행의 타일을 리스트로 가져오는 함수
+    public List<TerrainControler> GetTerrains_Row(int yIdx2D, bool isSortReverse)
+    {
+        List<TerrainControler> terrains = new List<TerrainControler>();
+        TerrainControler tempTile = default;
+        int tileIdx1D = 0;
+        for (int x = 0; x < MapCellSize.x; x++)
+        {
+            tileIdx1D = yIdx2D * MapCellSize.x + x;
+
+            // 해당 인덱스의 타일이 존재하는 경우 리스트에 추가한다.
+            tempTile = terrainMap.GetTile(tileIdx1D);
+            if (tempTile.IsValid() == false) { continue; }
+
+            terrains.Add(tempTile);
+        }       // loop: x 행의 크기만큼 순회하는 루프
+
+        if (terrains.IsValid())
+        {
+            // 왼쪽에서 오른쪽 캐싱이 정방향, 오른쪽에서 왼쪽이 역방향이다.
+            if (isSortReverse) { terrains.Reverse(); }
+            else { /* Do nothing */ }
+
+            return terrains;
+        }
+        else { return default; }
+    }       // GetTerrains_Row()
 
     //! 지형의 인덱스를 2D 좌표로 리턴하는 함수
     public Vector2Int GetTileIdx2D(int idx1D)
@@ -92,7 +130,11 @@ public class MapBoard : MonoBehaviour
     //! 지형의 2D 좌표를 인덱스로 리턴하는 함수
     public int GetTileIdx1D(Vector2Int idx2D)
     {
-        int tileIdx1D = (idx2D.y * MapCellSize.x) + idx2D.x;
+        int tileIdx1D = -1;
+        if(idx2D.x < 0 || idx2D.y < 0) { return tileIdx1D; }
+        if(MapCellSize.x <= idx2D.x || MapCellSize.y <= idx2D.y) { return tileIdx1D; }
+
+        tileIdx1D = (idx2D.y * MapCellSize.x) + idx2D.x;
         return tileIdx1D;
     }       // GetTileIdx1D()
 
@@ -133,4 +175,87 @@ public class MapBoard : MonoBehaviour
 
         return idx1D_around4ways;
     }       // GetTileIdx2D_Around4ways()
+
+    //! Terrain 리스트를 받아서 TargetIdx 기준으로 2개의 리스트로 Split 하는 함수
+    public List<TerrainControler>[] SplitTerrains(List<TerrainControler> terrains_, Vector2Int targetIdx2D)
+    {
+        List<TerrainControler>[] resultTerrains = new List<TerrainControler>[2];
+
+        int targetIdx = -1;
+        for(int i=0; i<terrains_.Count; i++)
+        {
+            if (terrains_[i].TileIdx2D.Equals(targetIdx2D)) 
+            { 
+                targetIdx = i;
+                break;
+            }
+        }       // loop: targetIdx 를 찾는 루프
+        if(targetIdx.Equals(-1)) { return default; }
+
+        resultTerrains[0] = terrains_.GetRange(0, targetIdx);
+
+        //// DEBUG:
+        //foreach(TerrainControler terrain_ in resultTerrains[0])
+        //{
+        //    GFunc.Log("Result 0 idx: {0}", terrain_.TileIdx1D);
+        //}
+
+        // Target tile 을 제외하기 위해서 Range count 에서  1 을 뺀다.
+        int maxRange = terrains_.GetRangeCount(targetIdx) - 1;
+        if (terrains_.IsValid(maxRange))
+        {
+            resultTerrains[1] = terrains_.GetRange(targetIdx + 1, maxRange);
+
+            //// DEBUG:
+            //foreach (TerrainControler terrain_ in resultTerrains[1])
+            //{
+            //    GFunc.Log("Result 1 idx: {0}", terrain_.TileIdx1D);
+            //}
+        }
+        else { resultTerrains[1] = default; }
+
+        return resultTerrains;
+    }       // SplitTerrains()
+
+    //! Terrain 리스트를 받아서 이동 불가능한 지역을 포함한 뒤의 타일을 제거하는 함수
+    public void RemoveTerrains_NonPassableTileAfter(ref List<TerrainControler> terrains_)
+    {
+        if(terrains_.IsValid() == false) { return; }
+
+        int targetIdx = -1;
+        for(int i=0; i<terrains_.Count; i++)
+        {
+            if (terrains_[i].IsPassable == false)
+            {
+                targetIdx = i;
+                break;
+            }
+            else { continue; }
+        }       // loop: 이동 불가능한 지역을 찾는 루프
+
+        if(terrains_.IsValid(targetIdx) == false) { return; }
+
+        //// DEBUG:
+        //foreach (TerrainControler t in terrains_)
+        //{
+        //    GFunc.Log("Remove before idx: {0}", t.TileIdx1D);
+        //}
+
+        int rangeCnt = terrains_.GetRangeCount(targetIdx);
+        terrains_.RemoveRange(targetIdx, rangeCnt);
+
+        //// DEBUG:
+        //foreach(TerrainControler t in terrains_)
+        //{
+        //    GFunc.Log("Remove after idx: {0}", t.TileIdx1D);
+        //}
+    }       // RemoveTerrains_NonPassableTileAfter()
+
+    #region Jps 알고리즘
+    //! Search index 와 탐색 방향을 받아서 Jump point 를 리턴하는 함수
+    public TerrainControler GetJumpPoint(List<TerrainControler> searchTerrains_, GData.GridDirection direction_)
+    {
+        return terrainMap.GetJumpPoint(searchTerrains_, direction_);
+    }       // GetJumpPoint()
+    #endregion      // Jps 알고리즘
 }

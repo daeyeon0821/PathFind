@@ -4,6 +4,12 @@ using UnityEngine;
 
 public static partial class GData
 {
+    //! 탐색 방향을 정의
+    public enum GridDirection
+    {
+        NONE = -1,
+        EAST, WEST, SOUTH, NORTH
+    }
 }
 
 //! 지형의 속성을 정의하기 위한 타입

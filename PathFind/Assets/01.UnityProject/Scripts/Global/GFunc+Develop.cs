@@ -35,7 +35,15 @@ public static partial class GFunc
 #if DEBUG_MODE
         Debug.LogWarning(message);
 #endif      // DEBUG_MODE
-    }       // Log()
+    }       // LogWarning()
+
+    [System.Diagnostics.Conditional("DEBUG_MODE")]
+    public static void LogWarning(string strFormat, params object[] strParams)
+    {
+#if DEBUG_MODE
+        Debug.LogWarningFormat(strFormat, strParams);
+#endif      // DEBUG_MODE
+    }       // LogWarning()
     #endregion      // Print log func
 
     #region Assert for debug
@@ -69,6 +77,13 @@ public static partial class GFunc
     public static bool IsValid(this GameObject obj_)
     {
         bool isInvalid = (obj_ == null || obj_ == default);
+        return !isInvalid;
+    }       // IsValid()
+
+    //! 코루틴의 유효성을 검사한다.
+    public static bool IsValid(this Coroutine routine_)
+    {
+        bool isInvalid = (routine_ == null || routine_ == default);
         return !isInvalid;
     }       // IsValid()
 

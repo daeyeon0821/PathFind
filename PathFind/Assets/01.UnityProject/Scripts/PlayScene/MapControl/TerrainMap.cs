@@ -147,4 +147,120 @@ public class TerrainMap : TileMapControler
             loopCnt += 1;
         }       // loop: 타일의 이름과 렌더링 순서대로 정렬하는 루프
     }       // CachingAllTerrains()
+
+    #region Jps 알고리즘
+    //! Search index list 와 탐색 방향을 받아서 Jump point 를 리턴하는 함수
+    public TerrainControler GetJumpPoint(List<TerrainControler> searchTerrains_, GData.GridDirection direction_)
+    {
+        TerrainControler jumpPoint = default;
+        foreach(TerrainControler searchTerrain_ in searchTerrains_)
+        {
+            jumpPoint = GetJumpPoint(searchTerrain_.TileIdx2D, direction_);
+            if(jumpPoint.IsValid() && jumpPoint.IsPassable) { return jumpPoint; }
+            else { continue; }
+        }   // loop: 탐색할 리스트를 순회하는 루프
+
+        jumpPoint = default;
+        return jumpPoint;
+    }       // GetJumpPoint()
+
+    //! Search index 와 탐색 방향을 받아서 Jump point 를 리턴하는 함수
+    private TerrainControler GetJumpPoint(Vector2Int searchIdx, GData.GridDirection direction_)
+    {
+        Vector2Int nonPassableIdx2D_Left = default;
+        Vector2Int nonPassableIdx2D_Right = default;
+        Vector2Int searchCornerIdx2D_Left = default;
+        Vector2Int searchCornerIdx2D_Right = default;
+        Vector2Int jumpPointIdx2D = default;
+        
+        TerrainControler nonPassableTile_Left = default;
+        TerrainControler nonPassableTile_Right = default;
+        TerrainControler searchCornerTile_Left = default;
+        TerrainControler searchCornerTile_Right = default;
+        TerrainControler jumpPoint = default;
+
+        // { 탐색할 타일의 인덱스를 정의한다.
+        switch (direction_)
+        {
+            case GData.GridDirection.SOUTH:
+                nonPassableIdx2D_Left = new Vector2Int(searchIdx.x + 1, searchIdx.y);
+                nonPassableIdx2D_Right = new Vector2Int(searchIdx.x - 1, searchIdx.y);
+                searchCornerIdx2D_Left = new Vector2Int(nonPassableIdx2D_Left.x, nonPassableIdx2D_Left.y - 1);
+                searchCornerIdx2D_Right = new Vector2Int(nonPassableIdx2D_Right.x, nonPassableIdx2D_Right.y - 1);
+                jumpPointIdx2D = new Vector2Int(searchIdx.x, searchIdx.y - 1);
+                break;
+            case GData.GridDirection.NORTH:
+                nonPassableIdx2D_Left = new Vector2Int(searchIdx.x - 1, searchIdx.y);
+                nonPassableIdx2D_Right = new Vector2Int(searchIdx.x + 1, searchIdx.y);
+                searchCornerIdx2D_Left = new Vector2Int(nonPassableIdx2D_Left.x, nonPassableIdx2D_Left.y + 1);
+                searchCornerIdx2D_Right = new Vector2Int(nonPassableIdx2D_Right.x, nonPassableIdx2D_Right.y + 1);
+                jumpPointIdx2D = new Vector2Int(searchIdx.x, searchIdx.y + 1);
+                break;
+            case GData.GridDirection.WEST:
+                nonPassableIdx2D_Left = new Vector2Int(searchIdx.x, searchIdx.y - 1);
+                nonPassableIdx2D_Right = new Vector2Int(searchIdx.x, searchIdx.y + 1);
+                searchCornerIdx2D_Left = new Vector2Int(nonPassableIdx2D_Left.x - 1, nonPassableIdx2D_Left.y);
+                searchCornerIdx2D_Right = new Vector2Int(nonPassableIdx2D_Right.x - 1, nonPassableIdx2D_Right.y);
+                jumpPointIdx2D = new Vector2Int(searchIdx.x - 1, searchIdx.y);
+                break;
+            case GData.GridDirection.EAST:
+                nonPassableIdx2D_Left = new Vector2Int(searchIdx.x, searchIdx.y + 1);
+                nonPassableIdx2D_Right = new Vector2Int(searchIdx.x, searchIdx.y - 1);
+                searchCornerIdx2D_Left = new Vector2Int(nonPassableIdx2D_Left.x + 1, nonPassableIdx2D_Left.y);
+                searchCornerIdx2D_Right = new Vector2Int(nonPassableIdx2D_Right.x + 1, nonPassableIdx2D_Right.y);
+                jumpPointIdx2D = new Vector2Int(searchIdx.x + 1, searchIdx.y);
+                break;
+            default:
+                // 정해지지 않은 방향은 탐색하지 않는다.
+                jumpPoint = default;
+                return jumpPoint;
+        }       // switch: 탐색 방향에 따라서 Jump point 를 찾는다.
+        // } 탐색할 타일의 인덱스를 정의한다.
+
+        // { 캐싱한 인덱스로 코너를 검사하는 로직
+        nonPassableTile_Left = GetTile(mapControler.GetTileIdx1D(nonPassableIdx2D_Left));
+        if (nonPassableTile_Left.IsValid() && nonPassableTile_Left.IsPassable == false)
+        {
+            searchCornerTile_Left = GetTile(mapControler.GetTileIdx1D(searchCornerIdx2D_Left));
+            jumpPoint = GetTile(mapControler.GetTileIdx1D(jumpPointIdx2D));
+
+            // 직진 후 갈 수 없는 타일 방향으로 꺾을 수 있다면 코너로 간주한다.
+            if ((searchCornerTile_Left.IsValid() && searchCornerTile_Left.IsPassable) &&
+                (jumpPoint.IsValid() && jumpPoint.IsPassable))
+            {
+                //// DEBUG:
+                //GFunc.Log("[{0}] Search idx: {1}, Exists left corner: {2}, {3} Jump point: {4}",
+                //    direction_, searchIdx, nonPassableIdx2D_Left, nonPassableTile_Left.TileIdx2D, jumpPoint.TileIdx2D);
+                //searchCornerTile_Left.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
+                //jumpPoint.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
+
+                return jumpPoint;
+            }
+        }       // if: 갈 수 없는 타일이 존재하는 경우 코너를 검사한다.
+
+        nonPassableTile_Right = GetTile(mapControler.GetTileIdx1D(nonPassableIdx2D_Right));
+        if (nonPassableTile_Right.IsValid() && nonPassableTile_Right.IsPassable == false)
+        {
+            searchCornerTile_Right = GetTile(mapControler.GetTileIdx1D(searchCornerIdx2D_Right));
+            jumpPoint = GetTile(mapControler.GetTileIdx1D(jumpPointIdx2D));
+
+            // 직진 후 갈 수 없는 타일 방향으로 꺾을 수 있다면 코너로 간주한다.
+            if ((searchCornerTile_Right.IsValid() && searchCornerTile_Right.IsPassable) &&
+                (jumpPoint.IsValid() && jumpPoint.IsPassable))
+            {
+                //// DEBUG:
+                //GFunc.Log("[{0}] Search idx: {1}, Exists right corner: {2}, {3} Jump point: {4}",
+                //    direction_, searchIdx, nonPassableIdx2D_Right, nonPassableTile_Right.TileIdx2D, jumpPoint.TileIdx2D);
+                //searchCornerTile_Right.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
+                //jumpPoint.SetTileActiveColor(RDefine.TileStatusColor.SEARCHING);
+
+                return jumpPoint;
+            }
+        }       // if: 갈 수 없는 타일이 존재하는 경우 코너를 검사한다.
+        // } 캐싱한 인덱스로 코너를 검사하는 로직
+
+        jumpPoint = default;
+        return jumpPoint;
+    }       // GetJumpPoint()
+    #endregion      // Jps 알고리즘
 }
