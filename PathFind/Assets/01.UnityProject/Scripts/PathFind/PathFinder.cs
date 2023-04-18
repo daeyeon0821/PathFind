@@ -45,29 +45,60 @@ public class PathFinder : GSingleton<PathFinder>
     //! A star 알고리즘을 멈추고 노드를 정리하는 함수
     public void Clear_Astar()
     {
+        Clear_Algorithm(ref aStarOpenPath, ref aStarClosePath);
+
+        //// LEGACY:
+        //// 실행중인 루틴이 없는 경우 Clear 할 것이 없다.
+        //if (currentRunningAlgorithm.IsValid() == false) { return; }
+        
+        //// 루틴을 멈추고 Open list 와 Close list 를 정리한다.
+        //StopCoroutine(currentRunningAlgorithm);
+        //if (aStarOpenPath.IsValid())
+        //{
+        //    foreach (AstarNode node_ in aStarOpenPath)
+        //    {
+        //        node_.Terrain.SetTileActiveColor(RDefine.TileStatusColor.DEFAULT);
+        //    }
+        //    aStarOpenPath.Clear();
+        //}       // if: Open list 를 정리한다.
+
+        //if(aStarClosePath.IsValid())
+        //{
+        //    foreach(AstarNode node_ in aStarClosePath)
+        //    {
+        //        node_.Terrain.SetTileActiveColor(RDefine.TileStatusColor.DEFAULT);
+        //    }
+        //    aStarClosePath.Clear();
+        //}       // if: Close list 를 정리한다.
+    }       // Clear_Astar()
+
+    //! 알고리즘을 멈추고 노드를 정리하는 함수
+    private void Clear_Algorithm<Node>(
+        ref List<Node> openlist_, ref List<Node> closelist_) where Node : AstarNode
+    {
         // 실행중인 루틴이 없는 경우 Clear 할 것이 없다.
         if (currentRunningAlgorithm.IsValid() == false) { return; }
-        
+
         // 루틴을 멈추고 Open list 와 Close list 를 정리한다.
         StopCoroutine(currentRunningAlgorithm);
-        if (aStarOpenPath.IsValid())
+        if (openlist_.IsValid())
         {
-            foreach (AstarNode node_ in aStarOpenPath)
+            foreach (Node node_ in openlist_)
             {
                 node_.Terrain.SetTileActiveColor(RDefine.TileStatusColor.DEFAULT);
             }
-            aStarOpenPath.Clear();
+            openlist_.Clear();
         }       // if: Open list 를 정리한다.
 
-        if(aStarClosePath.IsValid())
+        if (closelist_.IsValid())
         {
-            foreach(AstarNode node_ in aStarClosePath)
+            foreach (Node node_ in closelist_)
             {
                 node_.Terrain.SetTileActiveColor(RDefine.TileStatusColor.DEFAULT);
             }
-            aStarClosePath.Clear();
+            closelist_.Clear();
         }       // if: Close list 를 정리한다.
-    }       // Stop_Astar()
+    }       // Clear_Algorithm()
 
     //! 탐색 알고리즘에 딜레이를 건다.
     private IEnumerator DelayFindPath_Astar(float delay_, GameObject sourceObj_, GameObject destObj_)
@@ -129,6 +160,9 @@ public class PathFinder : GSingleton<PathFinder>
                 aStarOpenPath.Clear();
                 aStarClosePath.Clear();
                 isFoundDestination = true;
+
+                // DEBUG:
+                GFunc.Log("Destination found. End A star search. {0}", loopIdx);
                 break;
             }       // if: 선택한 노드가 목적지에 도착한 경우
             else
@@ -405,9 +439,16 @@ public class PathFinder : GSingleton<PathFinder>
     public void FindPath_JPS()
     {
         float findDelay = mapBoard.pathFindDelay;
+        currentRunningAlgorithm = 
         StartCoroutine(DelayFindPath_JPS(findDelay));
 
     }       // FindPath_JPS()
+
+    //! A star 알고리즘을 멈추고 노드를 정리하는 함수
+    public void Clear_Jps()
+    {
+        Clear_Algorithm(ref jpsOpenPath, ref jpsClosePath);
+    }       // Clear_Jps()
 
     //! 출발지와 목적지 정보로 길을 찾는 함수
     private IEnumerator DelayFindPath_JPS(float delay_)
@@ -469,7 +510,7 @@ public class PathFinder : GSingleton<PathFinder>
                 isFoundDestination = true;
 
                 // DEBUG:
-                GFunc.Log("Destination found. End jps search. {0}", isFoundDestination);
+                GFunc.Log("Destination found. End jps search. {0}", loopIdx);
 
                 break;
             }       // if: 목적지에 도착한 경우

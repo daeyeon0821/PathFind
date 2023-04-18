@@ -8,5 +8,6 @@ public class RightUiButtons : MonoBehaviour
     public void OnClickStopFindBtn()
     {
         PathFinder.Instance.Clear_Astar();
+        PathFinder.Instance.Clear_Jps();
     }       // OnClickStopFindBtn()
 }
